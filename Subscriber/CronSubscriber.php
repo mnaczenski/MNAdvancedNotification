@@ -34,6 +34,7 @@ class CronSubscriber implements SubscriberInterface
     {
         $modelManager = Shopware()->Container()->get('models');
         $conn = Shopware()->Container()->get('dbal_connection');
+
         $notifications = $conn->createQueryBuilder()
             ->select(
                 'n.ordernumber',
@@ -45,6 +46,7 @@ class CronSubscriber implements SubscriberInterface
             ->setParameter('send', 0)
             ->execute()
             ->fetchAll();
+
         foreach ($notifications as $notify) {
             /* @var $shop \Shopware\Models\Shop\Shop */
             $shop = $modelManager->getRepository(\Shopware\Models\Shop\Shop::class)->getActiveById($notify['language']);
@@ -52,6 +54,8 @@ class CronSubscriber implements SubscriberInterface
             $shopContext = Context::createFromShop($shop, Shopware()->Container()->get('config'));
             $sContext = Shopware()->Container()->get('shopware_storefront.context_service')->createShopContext($notify['language']);
             Shopware()->Container()->get('router')->setContext($shopContext);
+
+
             $product_information = Shopware()->Container()->get('shopware_storefront.list_product_service')->get($notify['ordernumber'], $sContext);
             $product_information = Shopware()->Container()->get('legacy_struct_converter')->convertListProductStruct($product_information);
 
@@ -87,15 +91,18 @@ class CronSubscriber implements SubscriberInterface
                 'sArticle' => $product['articleID'],
                 'number' => $product['ordernumber'],
             ]);
+
             $context = [
                 'sArticleLink' => $link,
                 'sOrdernumber' => $notify['ordernumber'],
                 'sData' => $job['data'],
                 'product' => $product_information
             ];
+
             $mail = Shopware()->TemplateMail()->createMail('sARTICLEAVAILABLE', $context);
             $mail->addTo($notify['mail']);
             $mail->send();
+
             //Set notification to already sent
             $conn->update(
                 's_articles_notification',
